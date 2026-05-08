@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 8080
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+COPY ["LibraryFlow.API/LibraryFlow.API.csproj", "LibraryFlow.API/"]
+COPY ["LibraryFlow.Application/LibraryFlow.Application.csproj", "LibraryFlow.Application/"]
+COPY ["LibraryFlow.Domain/LibraryFlow.Domain.csproj", "LibraryFlow.Domain/"]
+COPY ["LibraryFlow.Infrastructure/LibraryFlow.Infrastructure.csproj", "LibraryFlow.Infrastructure/"]
+
+RUN dotnet restore "LibraryFlow.API/LibraryFlow.API.csproj"
+
+COPY . .
+RUN dotnet publish "LibraryFlow.API/LibraryFlow.API.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "LibraryFlow.API.dll"]
