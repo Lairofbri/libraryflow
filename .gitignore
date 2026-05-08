@@ -427,3 +427,26 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# ===========================================================
+# LibraryFlow project-specific
+# ===========================================================
+
+# Local environment files (keep .env.example committed)
+.env
+.env.local
+.env.*.local
+
+# Frontend
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Logs
+*.log
+logs/
+
+# OS junk
+.DS_Store
+Thumbs.db

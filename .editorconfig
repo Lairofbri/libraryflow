@@ -1,0 +1,37 @@
+# LibraryFlow — shared editor configuration
+# https://editorconfig.org/
+# Honored by Visual Studio, VS Code, JetBrains IDEs, and most editors.
+
+root = true
+
+# Defaults for every file
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+# C# / .NET
+[*.{cs,csproj,sln,props,targets}]
+indent_size = 4
+
+# TypeScript / JavaScript / React
+[*.{ts,tsx,js,jsx,mjs,cjs}]
+indent_size = 2
+
+# Web assets
+[*.{html,css,scss}]
+indent_size = 2
+
+# Config / data files
+[*.{json,yml,yaml,xml,md}]
+indent_size = 2
+
+# Markdown — keep trailing whitespace (it's a hard line break in MD)
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows batch files keep CRLF
+[*.{cmd,bat}]
+end_of_line = crlf
