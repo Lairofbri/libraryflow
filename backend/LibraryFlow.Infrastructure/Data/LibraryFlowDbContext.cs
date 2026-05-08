@@ -29,10 +29,8 @@ public class LibraryFlowDbContext(DbContextOptions<LibraryFlowDbContext> options
                 .IsRequired()
                 .HasDefaultValue(0);
 
-            // RowVersion: SQL Server lo gestiona automáticamente.
-            // EF Core lo usa para detectar conflictos de concurrencia.
-            entity.Property(b => b.RowVersion)
-                .IsRowVersion()
+            // PostgreSQL: usamos Version como concurrency token manual
+            entity.Property(b => b.Version)
                 .IsConcurrencyToken();
         });
 
@@ -47,7 +45,6 @@ public class LibraryFlowDbContext(DbContextOptions<LibraryFlowDbContext> options
             entity.Property(r => r.CreatedAt)
                 .IsRequired();
 
-            // Relación: una reserva pertenece a un libro
             entity.HasOne(r => r.Book)
                 .WithMany(b => b.Reservations)
                 .HasForeignKey(r => r.BookId)

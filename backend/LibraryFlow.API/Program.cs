@@ -5,17 +5,18 @@ using LibraryFlow.Application.Interfaces;
 using LibraryFlow.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using LibraryFlow.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Base de datos ──────────────────────────────────────────────────────────
 builder.Services.AddDbContext<LibraryFlowDbContext>(options =>
-    options.UseSqlServer(
+    options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure(
+        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
             maxRetryCount: 3,
             maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null)));
+            errorCodesToAdd: null)));
 
 // ── Repositorios ───────────────────────────────────────────────────────────
 builder.Services.AddScoped<IBookRepository, BookRepository>();
@@ -42,6 +43,7 @@ builder.Services.AddCors(options =>
 // ── Controllers + OpenAPI ──────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 

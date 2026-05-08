@@ -7,9 +7,12 @@ public class Book
     public string Author { get; set; } = string.Empty;
     public int StockDisponible { get; set; }
 
-    // EF Core usa este campo para optimistic locking.
-    // Se incrementa automáticamente en cada UPDATE en SQL Server.
-    public byte[] RowVersion { get; set; } = [];
+     // Token de concurrencia optimista para PostgreSQL
+    // Se incrementa manualmente en cada actualización
+    public int Version { get; set; }
 
+    // xmin es manejado internamente por PostgreSQL y Npgsql
+    // No necesitamos declararlo explícitamente en la entidad
     public ICollection<Reservation> Reservations { get; set; } = [];
+
 }

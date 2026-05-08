@@ -26,14 +26,10 @@ public class BookRepository(LibraryFlowDbContext context) : IBookRepository
 
     public async Task<Book?> GetByIdWithLockAsync(int id)
     {
-        // Pessimistic locking: bloquea la fila durante la transacción.
-        // UPDLOCK evita deadlocks, ROWLOCK limita el bloqueo a la fila exacta.
-        // Ninguna otra transacción puede leer ni modificar este registro
-        // hasta que la transacción actual haga commit o rollback.
+        // PostgreSQL: SELECT ... FOR UPDATE bloquea la fila
+        // durante la transacción activa — equivalente al UPDLOCK de SQL Server
         return await _context.Books
-            .FromSqlRaw(
-                "SELECT * FROM Books WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}",
-                id)
+            .FromSqlRaw("SELECT * FROM \"Books\" WHERE \"Id\" = {0} FOR UPDATE", id)
             .FirstOrDefaultAsync();
     }
 
@@ -48,13 +44,12 @@ public class BookRepository(LibraryFlowDbContext context) : IBookRepository
     {
         try
         {
+            book.Version++;
             _context.Books.Update(book);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            // Convertimos la excepción de EF Core a nuestra excepción de dominio.
-            // Así Application no depende de EF Core.
             throw new ConcurrencyException(
                 "El libro fue modificado por otra operación simultánea.", ex);
         }
