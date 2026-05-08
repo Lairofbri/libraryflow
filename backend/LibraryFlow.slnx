@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="LibraryFlow.API/LibraryFlow.API.csproj" />
+  <Project Path="LibraryFlow.Application/LibraryFlow.Application.csproj" />
+  <Project Path="LibraryFlow.Domain/LibraryFlow.Domain.csproj" />
+  <Project Path="LibraryFlow.Infrastructure/LibraryFlow.Infrastructure.csproj" />
+</Solution>
