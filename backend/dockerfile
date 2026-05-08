@@ -5,14 +5,14 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY ["LibraryFlow.API/LibraryFlow.API.csproj", "LibraryFlow.API/"]
-COPY ["LibraryFlow.Application/LibraryFlow.Application.csproj", "LibraryFlow.Application/"]
-COPY ["LibraryFlow.Domain/LibraryFlow.Domain.csproj", "LibraryFlow.Domain/"]
-COPY ["LibraryFlow.Infrastructure/LibraryFlow.Infrastructure.csproj", "LibraryFlow.Infrastructure/"]
+COPY ["backend/LibraryFlow.API/LibraryFlow.API.csproj", "LibraryFlow.API/"]
+COPY ["backend/LibraryFlow.Application/LibraryFlow.Application.csproj", "LibraryFlow.Application/"]
+COPY ["backend/LibraryFlow.Domain/LibraryFlow.Domain.csproj", "LibraryFlow.Domain/"]
+COPY ["backend/LibraryFlow.Infrastructure/LibraryFlow.Infrastructure.csproj", "LibraryFlow.Infrastructure/"]
 
 RUN dotnet restore "LibraryFlow.API/LibraryFlow.API.csproj"
 
-COPY . .
+COPY backend/ .
 RUN dotnet publish "LibraryFlow.API/LibraryFlow.API.csproj" -c Release -o /app/publish
 
 FROM base AS final
