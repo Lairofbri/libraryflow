@@ -21,7 +21,7 @@ export function AddBookModal({ onAdd, onClose }: AddBookModalProps) {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: name === 'stockDisponible' ? parseInt(value, 10) || 0 : value,
+      [name]: name === 'stockDisponible' ? Math.max(0, parseInt(value, 10) || 0) : value,
     }));
   };
 

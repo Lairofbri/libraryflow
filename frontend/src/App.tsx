@@ -3,12 +3,10 @@ import { ReservationHistory } from './components/Reservations/ReservationHistory
 import { useReservations } from './hooks/useReservation';
 
 function App() {
-  // Una sola instancia compartida entre catálogo e historial
   const reservationsHook = useReservations();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center gap-3">
           <span className="text-2xl">📚</span>
@@ -23,7 +21,6 @@ function App() {
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-6xl mx-auto px-6 py-10 flex flex-col gap-12">
         <BookCatalog reservationsHook={reservationsHook} />
         <ReservationHistory reservationsHook={reservationsHook} />
