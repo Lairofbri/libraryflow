@@ -5,6 +5,7 @@ using LibraryFlow.Application.Interfaces;
 using LibraryFlow.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using LibraryFlow.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,7 @@ builder.Services.AddCors(options =>
 // ── Controllers + OpenAPI ──────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 
