@@ -26,7 +26,6 @@ builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<BookService>();
 builder.Services.AddScoped<ReservationService>();
 
-// ── CORS ───────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
@@ -34,7 +33,10 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
-                "http://localhost:4173")
+                "http://localhost:4173",
+                "https://libraryflow.vercel.app",
+                "https://libraryflow-git-main-raul-s-projects1.vercel.app",
+                "https://libraryflow-ds0js8ogf-raul-s-projects1.vercel.app")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
