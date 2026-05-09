@@ -5,17 +5,14 @@ using LibraryFlow.Application.Interfaces;
 using LibraryFlow.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using LibraryFlow.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Base de datos ──────────────────────────────────────────────────────────
 builder.Services.AddDbContext<LibraryFlowDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null)));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ── Repositorios ───────────────────────────────────────────────────────────
 builder.Services.AddScoped<IBookRepository, BookRepository>();
@@ -25,7 +22,6 @@ builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<BookService>();
 builder.Services.AddScoped<ReservationService>();
 
-// ── CORS ───────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
@@ -33,7 +29,10 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
-                "http://localhost:4173")
+                "http://localhost:4173",
+                "https://libraryflow.vercel.app",
+                "https://libraryflow-git-main-raul-s-projects1.vercel.app",
+                "https://libraryflow-ds0js8ogf-raul-s-projects1.vercel.app")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -42,6 +41,7 @@ builder.Services.AddCors(options =>
 // ── Controllers + OpenAPI ──────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 

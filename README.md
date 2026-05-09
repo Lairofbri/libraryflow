@@ -1,102 +1,130 @@
-# LibraryFlow
+# LibraryFlow 📚
 
-Sistema de gestión bibliotecaria — prueba técnica.
+Sistema de gestión bibliotecaria que permite consultar el catálogo de libros, realizar reservas y garantizar la integridad del inventario bajo concurrencia.
 
-Permite catalogar libros y registrar reservas con control de stock y manejo
-seguro de concurrencia (varios usuarios reservando al mismo tiempo no pueden
-sobre-reservar el mismo libro).
+## 🔗 Despliegue en vivo
 
-## Stack
+| Servicio | URL |
+|----------|-----|
+| Frontend | https://libraryflow.vercel.app |
+| Backend API | https://libraryflow.onrender.com |
+| API Docs | https://libraryflow.onrender.com/scalar/v1 (solo en Development) |
+| Base de datos | PostgreSQL en Railway |
 
-- **Backend:** ASP.NET Core Web API (.NET 8) con arquitectura por capas
-  (API · Application · Domain · Infrastructure), Repository Pattern,
-  Service Layer, EF Core y manejo de concurrencia con `RowVersion` (optimistic
-  locking) + `UPDLOCK, ROWLOCK` (pessimistic locking) y reintento exponencial.
-- **Frontend:** React + TypeScript (modo estricto) + Vite + TailwindCSS,
-  con custom hooks y polling de stock cada 5s.
-- **Base de datos:** SQL Server 2022 (Developer Edition en Docker para dev).
-- **Despliegue previsto:** Backend en Render, frontend en Vercel.
+---
 
-## Estructura del repositorio
+## 🏗️ Decisiones Arquitectónicas
 
+### Arquitectura por capas
+El backend está dividido en 4 proyectos con responsabilidades claras:
+
+- **LibraryFlow.Domain** — Entidades puras (`Book`, `Reservation`). Sin dependencias externas.
+- **LibraryFlow.Application** — Interfaces, DTOs y servicios con lógica de negocio. No depende de EF Core.
+- **LibraryFlow.Infrastructure** — Implementaciones de repositorios, DbContext y UnitOfWork.
+- **LibraryFlow.API** — Controllers, Middleware y configuración.
+
+### Estrategia de concurrencia
+Para evitar sobre-reservas cuando múltiples usuarios intentan reservar el último ejemplar simultáneamente se implementaron dos capas:
+
+1. **Pessimistic locking** — `SELECT ... FOR UPDATE` dentro de una transacción explícita. Bloquea la fila a nivel de base de datos durante toda la operación.
+2. **Optimistic locking** — Campo `Version` como token de concurrencia. Si dos transacciones modifican el mismo registro, EF Core lanza `DbUpdateConcurrencyException`.
+3. **Retry con backoff exponencial** — Máximo 3 reintentos con espera de 200ms, 400ms antes de devolver `409 Conflict`.
+
+### Repository Pattern + UnitOfWork
+Los repositorios abstraen el acceso a datos. El `UnitOfWork` gestiona las transacciones sin exponer EF Core hacia las capas superiores.
+
+### Middleware global de errores
+Todas las excepciones son capturadas por `ErrorHandlingMiddleware` y devueltas con formato consistente:
+```json
+{
+  "title": "Operación no permitida",
+  "status": 409,
+  "detail": "El libro no tiene stock disponible."
+}
 ```
-libraryflow/
-├── docker-compose.yml      # SQL Server local (Docker)
-├── .env.example            # Plantilla de variables (.env real está git-ignored)
-├── .editorconfig           # Reglas de formato compartidas
-├── backend/                # Solución .NET (se inicializa en Fase 2)
-└── frontend/               # App React + Vite (se inicializa en Fase 3)
-```
 
-## Setup local
+---
 
-### Prerrequisitos
+## 🛠️ Stack Tecnológico
 
-- Docker Desktop con WSL2 (Windows) o motor nativo (macOS/Linux)
-- .NET 8 SDK
-- Node.js 18+ y npm
+| Capa | Tecnología |
+|------|-----------|
+| Frontend | React 19 + TypeScript + Vite + TailwindCSS |
+| Backend | ASP.NET Core Web API (.NET 10) |
+| ORM | Entity Framework Core 9 + Npgsql |
+| Base de datos | PostgreSQL (Railway) |
+| Deploy backend | Render (Docker) |
+| Deploy frontend | Vercel |
+
+---
+
+## 🚀 Ejecución Local
+
+### Prerequisitos
+- Node.js 22.12+
+- .NET 10 SDK
+- Docker Desktop
 - Git
 
-### 1. Clonar y configurar variables de entorno
-
+### 1. Clonar el repositorio
 ```bash
 git clone https://github.com/lairofbri/libraryflow.git
 cd libraryflow
-cp .env.example .env       # Windows PowerShell:  copy .env.example .env
 ```
 
-Edita `.env` y elige una contraseña SA fuerte (min 8 chars, mayúscula,
-minúscula, número, símbolo).
-
-### 2. Levantar SQL Server
-
+### 2. Levantar SQL Server local (opcional)
 ```bash
-docker compose up -d
-docker compose ps          # debe mostrar STATUS = Up ... (healthy)
+cp .env.example .env
+# Edita .env con tu password deseado
+docker-compose up -d
 ```
 
-El healthcheck tarda ~30-45s la primera vez en pasar a `healthy`.
-
-### 3. Verificar la conexión
-
+### 3. Configurar el backend
 ```bash
-docker exec -it libraryflow-sqlserver \
-  /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "<TU_PASSWORD>" -C \
-  -Q "SELECT @@VERSION"
+cd backend/LibraryFlow.API
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "TU_CONNECTION_STRING"
+cd ..
+dotnet run --project LibraryFlow.API/LibraryFlow.API.csproj
 ```
 
-Debe imprimir el banner de SQL Server 2022 Developer Edition.
+El servidor arranca en `http://localhost:5066` y aplica las migraciones automáticamente.
 
-### 4. Backend y frontend
-
-Pendiente — se documenta al cerrar las Fases 2 y 3.
-
-## Comandos útiles de Docker
-
+### 4. Configurar el frontend
 ```bash
-docker compose up -d              # Levantar
-docker compose ps                 # Estado
-docker compose logs -f sqlserver  # Logs en vivo
-docker compose stop               # Detener (conserva datos)
-docker compose down               # Detener y eliminar contenedor (conserva volumen)
-docker compose down -v            # Eliminar TODO incluyendo el volumen de datos
+cd frontend
+cp .env.example .env.local
+# Edita .env.local: VITE_API_URL=http://localhost:5066
+npm install
+npm run dev
 ```
 
-## Roadmap por fases
+El frontend arranca en `http://localhost:5173`.
 
-| Fase | Estado | Contenido |
-|------|--------|-----------|
-| 1 — Base de datos | En progreso | Docker + SQL Server, estructura de carpetas |
-| 2 — Backend | Pendiente | .NET 8 API por capas, EF Core, concurrencia, endpoints |
-| 3 — Frontend | Pendiente | React + TS + Tailwind, hooks, polling, UI |
+---
 
-## Estrategia de ramas
+## 📡 API Endpoints
 
-- `main` solo recibe código revisado y funcional.
-- Cada fase trabaja en su propia rama: `feature/phase-1-database`,
-  `feature/phase-2-backend`, `feature/phase-3-frontend`.
-- Al terminar y revisar la fase, se mergea a `main` y se elimina la rama.
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/books` | Obtener todos los libros |
+| POST | `/api/books` | Crear un libro |
+| GET | `/api/reservations` | Historial de reservas |
+| POST | `/api/reservations` | Crear una reserva |
 
-## Licencia
+### Ejemplo — Crear reserva
+```bash
+curl -X POST https://libraryflow.onrender.com/api/reservations \
+  -H "Content-Type: application/json" \
+  -d '{"bookId": 1, "userName": "raul.marroquin"}'
+```
 
-Uso académico / prueba técnica.
+---
+
+## 🌿 Estrategia de Ramas
+
+| Rama | Propósito |
+|------|-----------|
+| `main` | Código revisado y funcional |
+| `feature/phase-N-NAME` | Desarrollo de cada fase |
+
+Cada fase se desarrolla en su rama, se prueba, se mergea a `main` con `--no-ff` y se elimina.

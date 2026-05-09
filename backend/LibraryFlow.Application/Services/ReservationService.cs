@@ -6,10 +6,12 @@ namespace LibraryFlow.Application.Services;
 
 public class ReservationService(
     IReservationRepository reservationRepository,
-    IBookRepository bookRepository)
+    IBookRepository bookRepository,
+    IUnitOfWork unitOfWork)
 {
     private readonly IReservationRepository _reservationRepository = reservationRepository;
     private readonly IBookRepository _bookRepository = bookRepository;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     private const int MaxRetries = 3;
 
@@ -29,12 +31,14 @@ public class ReservationService(
 
             try
             {
+                await _unitOfWork.BeginTransactionAsync();
+
                 var book = await _bookRepository.GetByIdWithLockAsync(dto.BookId)
-                    ?? throw new KeyNotFoundException($"Libro con Id {dto.BookId} no encontrado.");
+                ?? throw new KeyNotFoundException($"Libro con Id {dto.BookId} no encontrado.");
 
                 if (book.StockDisponible <= 0)
                     throw new InvalidOperationException(
-                        $"El libro '{book.Title}' no tiene stock disponible.");
+                    $"El libro '{book.Title}' no tiene stock disponible.");
 
                 book.StockDisponible--;
 
@@ -48,19 +52,28 @@ public class ReservationService(
                 };
 
                 var created = await _reservationRepository.CreateAsync(reservation);
+
+                await _unitOfWork.CommitAsync();
+
                 return MapToDto(created);
             }
             catch (ConcurrencyException) when (attempt < MaxRetries)
             {
-                // Backoff exponencial: 200ms, 400ms antes de reintentar
+                await _unitOfWork.RollbackAsync();
                 int delayMs = (int)Math.Pow(2, attempt) * 100;
                 await Task.Delay(delayMs);
             }
-            catch (ConcurrencyException)
-            {
-                throw new InvalidOperationException(
-                    "No se pudo completar la reserva por alta concurrencia. Intenta de nuevo.");
-            }
+catch (ConcurrencyException)
+{
+    await _unitOfWork.RollbackAsync();
+    throw new InvalidOperationException(
+        "No se pudo completar la reserva por alta concurrencia. Intenta de nuevo.");
+}
+catch
+{
+    await _unitOfWork.RollbackAsync();
+    throw;
+}
         }
     }
 
