@@ -12,11 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ── Base de datos ──────────────────────────────────────────────────────────
 builder.Services.AddDbContext<LibraryFlowDbContext>(options =>
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorCodesToAdd: null)));
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ── Repositorios ───────────────────────────────────────────────────────────
 builder.Services.AddScoped<IBookRepository, BookRepository>();
