@@ -1,5 +1,6 @@
 using LibraryFlow.Application.DTOs;
 using LibraryFlow.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryFlow.API.Controllers;
@@ -10,7 +11,7 @@ public class BooksController(BookService bookService) : ControllerBase
 {
     private readonly BookService _bookService = bookService;
 
-    // GET /api/books
+    // GET /api/books — público
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -18,8 +19,9 @@ public class BooksController(BookService bookService) : ControllerBase
         return Ok(books);
     }
 
-    // POST /api/books
+    // POST /api/books — solo bibliotecario
     [HttpPost]
+    [Authorize(Roles = "Bibliotecario")]
     public async Task<IActionResult> Create([FromBody] CreateBookDto dto)
     {
         var created = await _bookService.CreateAsync(dto);
