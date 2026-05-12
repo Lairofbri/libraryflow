@@ -14,6 +14,7 @@ public class ReservationService(
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     private const int MaxRetries = 3;
+    private const int DueDays = 7;
 
     public async Task<IEnumerable<ReservationDto>> GetAllAsync()
     {
@@ -21,7 +22,13 @@ public class ReservationService(
         return reservations.Select(MapToDto);
     }
 
-    public async Task<ReservationDto> CreateAsync(CreateReservationDto dto)
+    public async Task<IEnumerable<ReservationDto>> GetByUserIdAsync(int userId)
+    {
+        var reservations = await _reservationRepository.GetByUserIdAsync(userId);
+        return reservations.Select(MapToDto);
+    }
+
+    public async Task<ReservationDto> CreateAsync(CreateReservationDto dto, int userId)
     {
         int attempt = 0;
 
@@ -34,25 +41,25 @@ public class ReservationService(
                 await _unitOfWork.BeginTransactionAsync();
 
                 var book = await _bookRepository.GetByIdWithLockAsync(dto.BookId)
-                ?? throw new KeyNotFoundException($"Libro con Id {dto.BookId} no encontrado.");
+                    ?? throw new KeyNotFoundException($"Libro con Id {dto.BookId} no encontrado.");
 
                 if (book.StockDisponible <= 0)
                     throw new InvalidOperationException(
-                    $"El libro '{book.Title}' no tiene stock disponible.");
+                        $"El libro '{book.Title}' no tiene stock disponible.");
 
                 book.StockDisponible--;
-
                 await _bookRepository.UpdateAsync(book);
 
                 var reservation = new Reservation
                 {
                     BookId = dto.BookId,
-                    UserName = dto.UserName.Trim(),
-                    CreatedAt = DateTime.UtcNow
+                    UserId = userId,
+                    Status = ReservationStatus.Activa,
+                    CreatedAt = DateTime.UtcNow,
+                    DueDate = DateTime.UtcNow.AddDays(DueDays)
                 };
 
                 var created = await _reservationRepository.CreateAsync(reservation);
-
                 await _unitOfWork.CommitAsync();
 
                 return MapToDto(created);
@@ -63,27 +70,67 @@ public class ReservationService(
                 int delayMs = (int)Math.Pow(2, attempt) * 100;
                 await Task.Delay(delayMs);
             }
-catch (ConcurrencyException)
-{
-    await _unitOfWork.RollbackAsync();
-    throw new InvalidOperationException(
-        "No se pudo completar la reserva por alta concurrencia. Intenta de nuevo.");
-}
-catch
-{
-    await _unitOfWork.RollbackAsync();
-    throw;
-}
+            catch (ConcurrencyException)
+            {
+                await _unitOfWork.RollbackAsync();
+                throw new InvalidOperationException(
+                    "No se pudo completar la reserva por alta concurrencia. Intenta de nuevo.");
+            }
+            catch
+            {
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
         }
     }
+
+    public async Task<ReservationDto> ReturnAsync(int reservationId, int userId, bool isBibliotecario)
+{
+    var reservation = await _reservationRepository.GetByIdAsync(reservationId)
+        ?? throw new KeyNotFoundException($"Reserva con Id {reservationId} no encontrada.");
+
+    if (!isBibliotecario && reservation.UserId != userId)
+        throw new InvalidOperationException("No tienes permiso para devolver esta reserva.");
+
+    if (reservation.Status != ReservationStatus.Activa)
+        throw new InvalidOperationException("Esta reserva ya fue devuelta o está vencida.");
+
+    await _unitOfWork.BeginTransactionAsync();
+
+    try
+    {
+        var book = await _bookRepository.GetByIdWithLockAsync(reservation.BookId)
+            ?? throw new KeyNotFoundException("Libro no encontrado.");
+
+        book.StockDisponible++;
+        await _bookRepository.UpdateAsync(book);
+
+        reservation.Status = ReservationStatus.Devuelta;
+        reservation.ReturnedAt = DateTime.UtcNow;
+        await _reservationRepository.UpdateAsync(reservation);
+
+        await _unitOfWork.CommitAsync();
+
+        return MapToDto(reservation);
+    }
+    catch
+    {
+        await _unitOfWork.RollbackAsync();
+        throw;
+    }
+}
 
     private static ReservationDto MapToDto(Reservation r) => new()
     {
         Id = r.Id,
-        UserName = r.UserName,
+        UserId = r.UserId,
+        UserFullName = r.User?.FullName ?? string.Empty,
         BookId = r.BookId,
         BookTitle = r.Book?.Title ?? string.Empty,
         BookAuthor = r.Book?.Author ?? string.Empty,
-        CreatedAt = r.CreatedAt
+        Status = r.Status.ToString(),
+        CreatedAt = r.CreatedAt,
+        DueDate = r.DueDate,
+        ReturnedAt = r.ReturnedAt
     };
 }

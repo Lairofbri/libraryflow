@@ -20,6 +20,12 @@ public class BookService(IBookRepository bookRepository)
         {
             Title = dto.Title.Trim(),
             Author = dto.Author.Trim(),
+            ISBN = dto.ISBN.Trim(),
+            Genre = dto.Genre.Trim(),
+            Publisher = dto.Publisher.Trim(),
+            Year = dto.Year,
+            Description = dto.Description.Trim(),
+            CoverUrl = dto.CoverUrl.Trim(),
             StockDisponible = dto.StockDisponible
         };
 
@@ -27,11 +33,17 @@ public class BookService(IBookRepository bookRepository)
         return MapToDto(created);
     }
 
-    private static BookDto MapToDto(Book book) => new()
+    private static BookDto MapToDto(Book b) => new()
     {
-        Id = book.Id,
-        Title = book.Title,
-        Author = book.Author,
-        StockDisponible = book.StockDisponible
+        Id = b.Id,
+        Title = b.Title,
+        Author = b.Author,
+        ISBN = b.ISBN,
+        Genre = b.Genre,
+        Publisher = b.Publisher,
+        Year = b.Year,
+        Description = b.Description,
+        CoverUrl = b.CoverUrl,
+        StockDisponible = b.StockDisponible
     };
 }

@@ -3,10 +3,13 @@ namespace LibraryFlow.Domain.Entities;
 public class Reservation
 {
     public int Id { get; set; }
-    public string UserName { get; set; } = string.Empty;
+    public int UserId { get; set; }
     public int BookId { get; set; }
+    public ReservationStatus Status { get; set; } = ReservationStatus.Activa;
     public DateTime CreatedAt { get; set; }
+    public DateTime DueDate { get; set; }
+    public DateTime? ReturnedAt { get; set; }
 
-    // Propiedad de navegación — EF Core la usa para los JOINs
+    public User User { get; set; } = null!;
     public Book Book { get; set; } = null!;
 }

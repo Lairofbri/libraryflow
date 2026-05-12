@@ -20,11 +20,19 @@ public class UsersController(UserService userService) : ControllerBase
         return Ok(users);
     }
 
+    // GET /api/users/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var user = await _userService.GetByIdAsync(id);
+        return Ok(user);
+    }
+
     // POST /api/users
     [HttpPost]
     public async Task<IActionResult> CreateBibliotecario([FromBody] CreateUserDto dto)
     {
         var created = await _userService.CreateBibliotecarioAsync(dto);
-        return CreatedAtAction(nameof(GetAll), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 }
