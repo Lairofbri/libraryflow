@@ -14,8 +14,28 @@ public class ReservationRepository(LibraryFlowDbContext context) : IReservationR
         return await _context.Reservations
             .AsNoTracking()
             .Include(r => r.Book)
+            .Include(r => r.User)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Reservation>> GetByUserIdAsync(int userId)
+    {
+        return await _context.Reservations
+            .AsNoTracking()
+            .Include(r => r.Book)
+            .Include(r => r.User)
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Reservation?> GetByIdAsync(int id)
+    {
+        return await _context.Reservations
+            .Include(r => r.Book)
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     public async Task<Reservation> CreateAsync(Reservation reservation)
@@ -23,11 +43,15 @@ public class ReservationRepository(LibraryFlowDbContext context) : IReservationR
         _context.Reservations.Add(reservation);
         await _context.SaveChangesAsync();
 
-        // Recargamos con el libro incluido para el mapeo en el servicio
-        await _context.Entry(reservation)
-            .Reference(r => r.Book)
-            .LoadAsync();
+        await _context.Entry(reservation).Reference(r => r.Book).LoadAsync();
+        await _context.Entry(reservation).Reference(r => r.User).LoadAsync();
 
         return reservation;
+    }
+
+    public async Task UpdateAsync(Reservation reservation)
+    {
+        _context.Reservations.Update(reservation);
+        await _context.SaveChangesAsync();
     }
 }

@@ -1,11 +1,14 @@
+using System.Text;
+using LibraryFlow.Application.Interfaces;
 using LibraryFlow.Application.Services;
+using LibraryFlow.API.Middleware;
+using LibraryFlow.Infrastructure;
 using LibraryFlow.Infrastructure.Data;
 using LibraryFlow.Infrastructure.Repositories;
-using LibraryFlow.Application.Interfaces;
-using LibraryFlow.API.Middleware;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
-using LibraryFlow.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,11 +20,43 @@ builder.Services.AddDbContext<LibraryFlowDbContext>(options =>
 // ── Repositorios ───────────────────────────────────────────────────────────
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 // ── Servicios ──────────────────────────────────────────────────────────────
 builder.Services.AddScoped<BookService>();
 builder.Services.AddScoped<ReservationService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
 
+// ── JWT ────────────────────────────────────────────────────────────────────
+var jwtSecret = builder.Configuration["Jwt:Secret"]!;
+var key = Encoding.UTF8.GetBytes(jwtSecret);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddAuthorization();
+
+// ── CORS ───────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
@@ -41,7 +76,6 @@ builder.Services.AddCors(options =>
 // ── Controllers + OpenAPI ──────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 
@@ -61,6 +95,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 // ── Migración automática al arrancar ──────────────────────────────────────
