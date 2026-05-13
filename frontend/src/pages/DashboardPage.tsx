@@ -3,7 +3,7 @@ import { useReservations } from '../hooks/useReservation';
 
 export function DashboardPage() {
   const { token } = useAuth();
-  const { reservations, loading } = useReservations(token);
+  const { reservations, loading, error } = useReservations(token);
 
   const stats = {
     total: reservations.length,
@@ -26,9 +26,15 @@ export function DashboardPage() {
         <p className="text-sm text-gray-500 mt-1">Resumen general del sistema</p>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-400 text-sm">Cargando datos...</div>
-      ) : (
+      {loading && <div className="text-center py-12 text-gray-400 text-sm">Cargando datos...</div>}
+
+      {error && !loading && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {cards.map((c) => (
