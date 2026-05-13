@@ -1,31 +1,74 @@
-import { BookCatalog } from './components/Books/BookCatalog';
-import { ReservationHistory } from './components/Reservations/ReservationHistory';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { useReservations } from './hooks/useReservation';
+import { Layout } from './components/Layout';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { AdminBooksPage } from './pages/AdminBooksPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
+import { MyReservationsPage } from './pages/MyReservationPage';
+import { BookCatalog } from './components/Books/BookCatalog';
 
-function App() {
-  const reservationsHook = useReservations();
+function AppContent() {
+  const { isAuthenticated, isGuest, user, token } = useAuth();
+  const reservationsHook = useReservations(token);
+  const hasAccess = isAuthenticated || isGuest;
+
+  if (!hasAccess) return <Navigate to="/login" replace />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center gap-3">
-          <span className="text-2xl">📚</span>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800 leading-none">
-              LibraryFlow
-            </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Sistema de gestión bibliotecaria
-            </p>
-          </div>
-        </div>
-      </header>
+    <Layout>
+      <Routes>
+        <Route path="/catalog" element={<BookCatalog reservationsHook={reservationsHook} />} />
 
-      <main className="max-w-6xl mx-auto px-6 py-10 flex flex-col gap-12">
-        <BookCatalog reservationsHook={reservationsHook} />
-        <ReservationHistory reservationsHook={reservationsHook} />
-      </main>
-    </div>
+        {user?.role === 'Cliente' && (
+          <Route path="/my-reservations" element={<MyReservationsPage />} />
+        )}
+
+        {user?.role === 'Bibliotecario' && (
+          <>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/admin/books" element={<AdminBooksPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+          </>
+        )}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={user?.role === 'Bibliotecario' ? '/dashboard' : '/catalog'}
+              replace
+            />
+          }
+        />
+      </Routes>
+    </Layout>
+  );
+}
+
+function AppRoutes() {
+  const { isAuthenticated, isGuest } = useAuth();
+  const hasAccess = isAuthenticated || isGuest;
+
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={hasAccess ? <Navigate to="/catalog" replace /> : <LoginPage />}
+      />
+      <Route path="/*" element={<AppContent />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

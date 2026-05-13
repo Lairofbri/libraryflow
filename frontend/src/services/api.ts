@@ -1,8 +1,13 @@
 import type {
   Book,
   Reservation,
+  User,
+  AuthResponse,
+  LoginPayload,
+  RegisterPayload,
   CreateBookPayload,
   CreateReservationPayload,
+  CreateUserPayload,
   ErrorResponse,
 } from '../types';
 
@@ -20,6 +25,33 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function authHeaders(token: string) {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+
+export async function login(payload: LoginPayload): Promise<AuthResponse> {
+  const response = await fetch(`${BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<AuthResponse>(response);
+}
+
+export async function register(payload: RegisterPayload): Promise<AuthResponse> {
+  const response = await fetch(`${BASE_URL}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<AuthResponse>(response);
+}
+
 // ── Books ──────────────────────────────────────────────────────────────────
 
 export async function fetchBooks(): Promise<Book[]> {
@@ -27,10 +59,13 @@ export async function fetchBooks(): Promise<Book[]> {
   return handleResponse<Book[]>(response);
 }
 
-export async function createBook(payload: CreateBookPayload): Promise<Book> {
+export async function createBook(
+  payload: CreateBookPayload,
+  token: string
+): Promise<Book> {
   const response = await fetch(`${BASE_URL}/api/books`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(token),
     body: JSON.stringify(payload),
   });
   return handleResponse<Book>(response);
@@ -38,18 +73,69 @@ export async function createBook(payload: CreateBookPayload): Promise<Book> {
 
 // ── Reservations ───────────────────────────────────────────────────────────
 
-export async function fetchReservations(): Promise<Reservation[]> {
-  const response = await fetch(`${BASE_URL}/api/reservations`);
+export async function fetchReservations(token: string): Promise<Reservation[]> {
+  const response = await fetch(`${BASE_URL}/api/reservations`, {
+    headers: authHeaders(token),
+  });
   return handleResponse<Reservation[]>(response);
 }
 
 export async function createReservation(
-  payload: CreateReservationPayload
+  payload: CreateReservationPayload,
+  token: string
 ): Promise<Reservation> {
   const response = await fetch(`${BASE_URL}/api/reservations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(token),
     body: JSON.stringify(payload),
   });
   return handleResponse<Reservation>(response);
+}
+
+export async function returnReservation(
+  reservationId: number,
+  token: string
+): Promise<Reservation> {
+  const response = await fetch(
+    `${BASE_URL}/api/reservations/${reservationId}/return`,
+    {
+      method: 'PUT',
+      headers: authHeaders(token),
+    }
+  );
+  return handleResponse<Reservation>(response);
+}
+
+// ── Users ──────────────────────────────────────────────────────────────────
+
+export async function fetchUsers(token: string): Promise<User[]> {
+  const response = await fetch(`${BASE_URL}/api/users`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<User[]>(response);
+}
+
+export async function createUser(
+  payload: CreateUserPayload,
+  token: string
+): Promise<User> {
+  const response = await fetch(`${BASE_URL}/api/users`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<User>(response);
+}
+
+export async function updateUser(
+  id: number,
+  payload: { fullName: string; password?: string },
+  token: string
+): Promise<User> {
+  const response = await fetch(`${BASE_URL}/api/users/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<User>(response);
 }
