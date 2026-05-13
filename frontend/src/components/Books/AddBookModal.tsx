@@ -1,27 +1,28 @@
 import { useState } from 'react';
-import type { CreateBookPayload } from '../../types';
+import type { Book, CreateBookPayload } from '../../types';
 
 interface AddBookModalProps {
   onAdd: (payload: CreateBookPayload) => Promise<boolean>;
   onClose: () => void;
+  initialData?: Book;
 }
 
-const EMPTY_FORM: CreateBookPayload = {
-  title: '',
-  author: '',
-  isbn: '',
-  genre: '',
-  publisher: '',
-  year: new Date().getFullYear(),
-  description: '',
-  coverUrl: '',
-  stockDisponible: 1,
-};
-
-export function AddBookModal({ onAdd, onClose }: AddBookModalProps) {
-  const [form, setForm] = useState<CreateBookPayload>(EMPTY_FORM);
+export function AddBookModal({ onAdd, onClose, initialData }: AddBookModalProps) {
+  const [form, setForm] = useState<CreateBookPayload>({
+    title: initialData?.title ?? '',
+    author: initialData?.author ?? '',
+    isbn: initialData?.isbn ?? '',
+    genre: initialData?.genre ?? '',
+    publisher: initialData?.publisher ?? '',
+    year: initialData?.year ?? new Date().getFullYear(),
+    description: initialData?.description ?? '',
+    coverUrl: initialData?.coverUrl ?? '',
+    stockDisponible: initialData?.stockDisponible ?? 1,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isEditing = !!initialData;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -47,7 +48,7 @@ export function AddBookModal({ onAdd, onClose }: AddBookModalProps) {
     if (success) {
       onClose();
     } else {
-      setError('No se pudo agregar el libro.');
+      setError('No se pudo guardar el libro.');
       setIsSubmitting(false);
     }
   };
@@ -67,7 +68,9 @@ export function AddBookModal({ onAdd, onClose }: AddBookModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-800">Agregar libro</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {isEditing ? 'Editar libro' : 'Agregar libro'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl cursor-pointer leading-none"
@@ -122,7 +125,7 @@ export function AddBookModal({ onAdd, onClose }: AddBookModalProps) {
             disabled={isSubmitting}
             className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white cursor-pointer"
           >
-            {isSubmitting ? 'Guardando...' : 'Guardar'}
+            {isSubmitting ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
           </button>
         </div>
       </div>

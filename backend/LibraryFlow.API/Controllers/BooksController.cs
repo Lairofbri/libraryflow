@@ -27,4 +27,13 @@ public class BooksController(BookService bookService) : ControllerBase
         var created = await _bookService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetAll), new { id = created.Id }, created);
     }
+
+    // PUT /api/books/{id} — solo bibliotecario
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Bibliotecario")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateBookDto dto)
+    {
+        var updated = await _bookService.UpdateAsync(id, dto);
+        return Ok(updated);
+    }
 }

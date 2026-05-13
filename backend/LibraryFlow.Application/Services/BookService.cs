@@ -46,4 +46,23 @@ public class BookService(IBookRepository bookRepository)
         CoverUrl = b.CoverUrl,
         StockDisponible = b.StockDisponible
     };
+
+    public async Task<BookDto> UpdateAsync(int id, UpdateBookDto dto)
+    {
+        var book = await _bookRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Libro con Id {id} no encontrado.");
+
+        book.Title = dto.Title.Trim();
+        book.Author = dto.Author.Trim();
+        book.ISBN = dto.ISBN.Trim();
+        book.Genre = dto.Genre.Trim();
+        book.Publisher = dto.Publisher.Trim();
+        book.Year = dto.Year;
+        book.Description = dto.Description.Trim();
+        book.CoverUrl = dto.CoverUrl.Trim();
+        book.StockDisponible = dto.StockDisponible;
+
+        var updated = await _bookRepository.UpdateBookAsync(book);
+        return MapToDto(updated);
+    }
 }

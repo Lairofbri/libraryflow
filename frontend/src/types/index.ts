@@ -86,4 +86,16 @@ export interface ErrorResponse {
   detail: string;
 }
 
+export interface UpdateBookPayload {
+  title: string;
+  author: string;
+  isbn: string;
+  genre: string;
+  publisher: string;
+  year: number;
+  description: string;
+  coverUrl: string;
+  stockDisponible: number;
+}
+
 export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';

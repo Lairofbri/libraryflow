@@ -9,4 +9,5 @@ public interface IBookRepository
     Task<Book?> GetByIdWithLockAsync(int id);
     Task<Book> CreateAsync(Book book);
     Task UpdateAsync(Book book);
+    Task<Book> UpdateBookAsync(Book book);
 }

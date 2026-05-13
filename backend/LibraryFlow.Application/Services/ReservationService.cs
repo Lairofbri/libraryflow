@@ -85,40 +85,43 @@ public class ReservationService(
     }
 
     public async Task<ReservationDto> ReturnAsync(int reservationId, int userId, bool isBibliotecario)
-{
-    var reservation = await _reservationRepository.GetByIdAsync(reservationId)
-        ?? throw new KeyNotFoundException($"Reserva con Id {reservationId} no encontrada.");
-
-    if (!isBibliotecario && reservation.UserId != userId)
-        throw new InvalidOperationException("No tienes permiso para devolver esta reserva.");
-
-    if (reservation.Status != ReservationStatus.Activa)
-        throw new InvalidOperationException("Esta reserva ya fue devuelta o está vencida.");
-
-    await _unitOfWork.BeginTransactionAsync();
-
-    try
     {
-        var book = await _bookRepository.GetByIdWithLockAsync(reservation.BookId)
-            ?? throw new KeyNotFoundException("Libro no encontrado.");
-
-        book.StockDisponible++;
-        await _bookRepository.UpdateAsync(book);
-
-        reservation.Status = ReservationStatus.Devuelta;
-        reservation.ReturnedAt = DateTime.UtcNow;
-        await _reservationRepository.UpdateAsync(reservation);
-
-        await _unitOfWork.CommitAsync();
-
-        return MapToDto(reservation);
+        var reservation = await _reservationRepository.GetByIdAsync(reservationId)
+            ?? throw new KeyNotFoundException($"Reserva con Id {reservationId} no encontrada.");
+    
+        // Cliente solo puede devolver sus propias reservas
+        if (!isBibliotecario && reservation.UserId != userId)
+            throw new InvalidOperationException("No tienes permiso para devolver esta reserva.");
+    
+        if (reservation.Status != ReservationStatus.Activa)
+            throw new InvalidOperationException("Esta reserva ya fue devuelta o está vencida.");
+    
+        await _unitOfWork.BeginTransactionAsync();
+    
+        try
+        {
+            var book = await _bookRepository.GetByIdWithLockAsync(reservation.BookId)
+                ?? throw new KeyNotFoundException("Libro no encontrado.");
+    
+            // Restaurar stock
+            book.StockDisponible++;
+            await _bookRepository.UpdateAsync(book);
+    
+            // Actualizar reserva
+            reservation.Status = ReservationStatus.Devuelta;
+            reservation.ReturnedAt = DateTime.UtcNow;
+            await _reservationRepository.UpdateAsync(reservation);
+    
+            await _unitOfWork.CommitAsync();
+    
+            return MapToDto(reservation);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
     }
-    catch
-    {
-        await _unitOfWork.RollbackAsync();
-        throw;
-    }
-}
 
     private static ReservationDto MapToDto(Reservation r) => new()
     {

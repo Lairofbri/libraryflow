@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useBooks } from '../hooks/useBooks';
 import { useAuth } from '../context/AuthContext';
-import { createBook } from '../services/api';
+import { createBook, updateBook } from '../services/api';
 import { AddBookModal } from '../components/Books/AddBookModal';
-import type { CreateBookPayload } from '../types';
+import type { Book, CreateBookPayload, UpdateBookPayload } from '../types';
 
 export function AdminBooksPage() {
   const { books, loading, error, refresh } = useBooks();
   const { token } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [search, setSearch] = useState('');
 
   const filtered = books.filter(
@@ -22,6 +23,17 @@ export function AdminBooksPage() {
     if (!token) return false;
     try {
       await createBook(payload, token);
+      await refresh();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleUpdate = async (payload: UpdateBookPayload): Promise<boolean> => {
+    if (!token || !editingBook) return false;
+    try {
+      await updateBook(editingBook.id, payload, token);
       await refresh();
       return true;
     } catch {
@@ -45,7 +57,7 @@ export function AdminBooksPage() {
             className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-56"
           />
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => { setEditingBook(null); setShowModal(true); }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl cursor-pointer"
           >
             + Agregar libro
@@ -67,6 +79,7 @@ export function AdminBooksPage() {
                 <th className="px-6 py-4 text-left">Género</th>
                 <th className="px-6 py-4 text-left">ISBN</th>
                 <th className="px-6 py-4 text-left">Stock</th>
+                <th className="px-6 py-4 text-left">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -91,6 +104,14 @@ export function AdminBooksPage() {
                       {b.stockDisponible === 0 ? 'Sin stock' : `${b.stockDisponible} disp.`}
                     </span>
                   </td>
+                  <td className="px-6 py-3">
+                    <button
+                      onClick={() => { setEditingBook(b); setShowModal(true); }}
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg cursor-pointer"
+                    >
+                      Editar
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -98,7 +119,20 @@ export function AdminBooksPage() {
         </div>
       )}
 
-      {showModal && <AddBookModal onAdd={handleAdd} onClose={() => setShowModal(false)} />}
+      {showModal && !editingBook && (
+        <AddBookModal
+          onAdd={handleAdd}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {showModal && editingBook && (
+        <AddBookModal
+          onAdd={(payload) => handleUpdate(payload as UpdateBookPayload)}
+          onClose={() => { setShowModal(false); setEditingBook(null); }}
+          initialData={editingBook}
+        />
+      )}
     </div>
   );
 }

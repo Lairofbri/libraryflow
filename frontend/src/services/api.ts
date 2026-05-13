@@ -9,6 +9,7 @@ import type {
   CreateReservationPayload,
   CreateUserPayload,
   ErrorResponse,
+  UpdateBookPayload
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5066';
@@ -138,4 +139,17 @@ export async function updateUser(
     body: JSON.stringify(payload),
   });
   return handleResponse<User>(response);
+}
+
+export async function updateBook(
+  id: number,
+  payload: UpdateBookPayload,
+  token: string
+): Promise<Book> {
+  const response = await fetch(`${BASE_URL}/api/books/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<Book>(response);
 }

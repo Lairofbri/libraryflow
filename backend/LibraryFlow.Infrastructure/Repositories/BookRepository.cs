@@ -54,4 +54,11 @@ public class BookRepository(LibraryFlowDbContext context) : IBookRepository
                 "El libro fue modificado por otra operación simultánea.", ex);
         }
     }
+
+    public async Task<Book> UpdateBookAsync(Book book)
+    {
+        _context.Books.Update(book);
+        await _context.SaveChangesAsync();
+        return book;
+    }
 }
