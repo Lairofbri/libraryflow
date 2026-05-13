@@ -47,4 +47,18 @@ public class UserService(IUserRepository userRepository)
         Role = u.Role.ToString(),
         CreatedAt = u.CreatedAt
     };
+
+    public async Task<UserDto> UpdateAsync(int id, UpdateUserDto dto)
+    {
+        var user = await _userRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Usuario con Id {id} no encontrado.");
+
+            user.FullName = dto.FullName.Trim();
+
+        if (!string.IsNullOrWhiteSpace(dto.Password))
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+            var updated = await _userRepository.UpdateAsync(user);
+        return MapToDto(updated);
+    }
 }

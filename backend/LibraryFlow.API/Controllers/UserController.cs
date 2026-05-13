@@ -35,4 +35,12 @@ public class UsersController(UserService userService) : ControllerBase
         var created = await _userService.CreateBibliotecarioAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    // PUT /api/users/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
+    {
+        var updated = await _userService.UpdateAsync(id, dto);
+        return Ok(updated);
+    }
 }
